@@ -61,6 +61,9 @@ Subject number map:
 21 = Poisoning/Burns/Injury Prevention
 22 = Pulmonology
 
+For example, a correctly formatted CSV row would look like:
+NKX5W27B,A 4-year-old boy presents with a white reflex observed during an exam,What is the most likely diagnosis?,Cataract,Retinoblastoma,Strabismus,Glaucoma,Persistent fetal vasculature,b,Retinoblastoma should be suspected in any child with a leukocoria; other options do not match the exam findings,4,18
+
 Return only the CSV row, nothing else."""
 
 
