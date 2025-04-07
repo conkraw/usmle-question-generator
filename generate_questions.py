@@ -21,16 +21,21 @@ def generate_record_id():
     return uuid.uuid4().hex[:6].upper()
 
 def get_question_prompt(subject_number):
-    return """Generate a single USMLE-style pediatric question as a CSV row with the following format: record_id, question, anchor, answerchoice_a, answerchoice_b, answerchoice_c, answerchoice_d, answerchoice_e, correct_answer, answer_explanation, age, subject
-    Instructions:
-    - Return only a single row of comma-separated values (no headers, no newlines, no quotes).
-    - The 'question' should be a full clinical vignette only.
-    - The 'anchor' is the main clinical question being asked — e.g., "What is the most likely diagnosis?" or "What is the next best step in management?"
-    - The five answer choices should be distinct and appropriate.
-    - 'correct_answer' should be one of: a, b, c, d, or e.
-    - 'answer_explanation' should include why the correct answer is correct and why the others are not.
-    - 'age' should be in years as a decimal (e.g., 0.5 for 6 months).
-    - 'subject' must be the number {subject_number} from the map below.
+    return f"""Generate a single USMLE-style pediatric question as a CSV row with the following format:
+
+record_id,question,anchor,answerchoice_a,answerchoice_b,answerchoice_c,answerchoice_d,answerchoice_e,correct_answer,answer_explanation,age,subject
+
+Rules:
+1. Output exactly one line containing exactly 12 comma-separated values corresponding to the fields above, with no header and no extra text.
+2. Do not include any commas in any field value; if needed, use semicolons instead.
+3. The 'record_id' can be any random string (the script will override it if necessary).
+4. The 'question' should be a full clinical vignette describing a realistic pediatric scenario.
+5. The 'anchor' is a concise clinical question (e.g., "What is the most likely diagnosis?").
+6. Provide exactly five answer choices (answerchoice_a to answerchoice_e) that are distinct and brief.
+7. The 'correct_answer' must be one of: a, b, c, d, or e (lowercase).
+8. The 'answer_explanation' should briefly explain why the correct answer is right and why the others are not.
+9. The 'age' should be a decimal number representing the patient's age in years (for example, 0.5 for 6 months).
+10. The 'subject' must be the number {subject_number} as defined by the subject map below.
 
 Subject number map:
 1 = Adolescent Medicine
@@ -54,8 +59,9 @@ Subject number map:
 19 = Orthopaedics
 20 = Nephrology/Urology
 21 = Poisoning/Burns/Injury Prevention
-22 = Pulmonology"""
+22 = Pulmonology
 
+Return only the CSV row, nothing else."""
 
 
 def generate_question(subject_number):
