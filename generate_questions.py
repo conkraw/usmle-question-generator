@@ -21,12 +21,42 @@ def generate_record_id():
     return uuid.uuid4().hex[:6].upper()
 
 def get_question_prompt(subject_number):
-    return f"""Generate one USMLE-style pediatric clinical question. Return the output as a **single comma-separated row** in the following format:
+    return """Generate a single USMLE-style pediatric question as a CSV row with the following format: record_id, question, anchor, answerchoice_a, answerchoice_b, answerchoice_c, answerchoice_d, answerchoice_e, correct_answer, answer_explanation, age, subject
+    Instructions:
+    - Return only a single row of comma-separated values (no headers, no newlines, no quotes).
+    - The 'question' should be a full clinical vignette only.
+    - The 'anchor' is the main clinical question being asked — e.g., "What is the most likely diagnosis?" or "What is the next best step in management?"
+    - The five answer choices should be distinct and appropriate.
+    - 'correct_answer' should be one of: a, b, c, d, or e.
+    - 'answer_explanation' should include why the correct answer is correct and why the others are not.
+    - 'age' should be in years as a decimal (e.g., 0.5 for 6 months).
+    - 'subject' must be the number {subject_number} from the map below.
 
-record_id, question (vignette only), anchor (main clinical question), answerchoice_a, answerchoice_b, answerchoice_c, answerchoice_d, answerchoice_e, correct_answer (just A-E), answer_explanation (detailed), age (number only), subject (number from 1 to 22)
+Subject number map:
+1 = Adolescent Medicine
+2 = Cardiology
+3 = Dermatology
+4 = Development
+5 = Emergency/Critical Care
+6 = Endocrinology
+7 = Gastroenterology
+8 = Genetic Disorders
+9 = Hematology
+10 = Immunizations
+11 = Immunology/Allergy/Rheumatology
+12 = Infectious Disease
+13 = Metabolic
+14 = Neurology
+15 = Newborn Medicine
+16 = Nutrition
+17 = Oncology
+18 = Ophthalmology
+19 = Orthopaedics
+20 = Nephrology/Urology
+21 = Poisoning/Burns/Injury Prevention
+22 = Pulmonology"""
 
-Use realistic clinical vignettes. Do not include quotation marks, newlines, or extra commentary. Return only a single CSV row, no header.
-"""
+
 
 def generate_question(subject_number):
     prompt = get_question_prompt(subject_number)
