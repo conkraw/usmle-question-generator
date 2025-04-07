@@ -49,7 +49,7 @@ def generate_question(subject_number):
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.0,
+        temperature=0.3,
     )
     csv_line = response.choices[0].message.content.strip()
     return csv_line
