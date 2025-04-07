@@ -31,7 +31,7 @@ jobs:
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
         run: python generate_questions.py
 
-      - name: Commit and push new CSV
+      - name: Commit and push new CSV using GH_PAT
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
