@@ -1,5 +1,5 @@
 import os
-import openai
+from openai import OpenAI
 import pandas as pd
 import random
 import uuid
@@ -7,7 +7,7 @@ import smtplib
 from datetime import date
 from email.message import EmailMessage
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SUBJECTS = list(range(1, 23))  # 1–22
 TODAY = date.today().isoformat()
@@ -29,12 +29,12 @@ Return only the values in a CSV row format, no headers or explanations."""
 
 def generate_question(subject_number):
     prompt = get_question_prompt(subject_number)
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7,
     )
-    csv_line = response.choices[0].message['content'].strip()
+    csv_line = response.choices[0].message.content.strip()
     return csv_line
 
 def send_email(filepath):
