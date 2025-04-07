@@ -110,7 +110,7 @@ def main():
     os.makedirs("questions", exist_ok=True)
     rows = []
     
-    # Predefined lists for 5 questions with unique anchor types and clinical settings.
+    # Predefined lists for anchor types and clinical settings.
     anchor_types = [
         "What is the most likely diagnosis?",
         "What is the next best step in management?",
@@ -126,18 +126,14 @@ def main():
         "inpatient ward"
     ]
     
-    # Shuffle to randomize order
-    random.shuffle(anchor_types)
-    random.shuffle(settings)
-    
-    for i in range(5):
-        subject = random.choice(SUBJECTS)
-        anchor = anchor_types[i]
-        setting = settings[i]
+    # Generate one question for each subject (total 22 questions)
+    for subject in SUBJECTS:  # SUBJECTS is defined as list(range(1, 23))
+        anchor = random.choice(anchor_types)
+        setting = random.choice(settings)
         question_data = generate_question(subject, anchor, setting)
         # Override record_id with a freshly generated one
         question_data["record_id"] = generate_record_id()
-        # Ensure subject is set to the chosen number
+        # Ensure subject is set to the chosen subject number
         question_data["subject"] = subject
         ordered_row = [
             question_data.get("record_id", ""),
