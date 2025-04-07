@@ -21,16 +21,16 @@ def get_question_prompt(subject_number):
     return f"""Generate a single USMLE-style pediatric question as a JSON object with the following keys:
 - record_id: a random string (this value will be overwritten by the script)
 - question: a detailed and lengthy clinical vignette describing a realistic pediatric scenario. The vignette should be at least 5 sentences long and mention a clinical setting such as a pediatrician's office, emergency department, ICU, or clinic.
-- anchor: a concise clinical question (for example, What is the most likely diagnosis?)
-- answerchoice_a: a brief answer option
-- answerchoice_b: a brief answer option
-- answerchoice_c: a brief answer option
-- answerchoice_d: a brief answer option
-- answerchoice_e: a brief answer option
-- correct_answer: one of "a", "b", "c", "d", or "e" (lowercase)
-- answer_explanation: a brief explanation for why the correct answer is correct and why the others are not
-- age: a decimal number representing the patient's age in years (e.g., 0.5 for 6 months)
-- subject: the number {subject_number} (see subject map below)
+- anchor: a concise clinical question. Choose one randomly from the following options: "What is the most likely diagnosis?", "What is the next best step in management?", "What is the underlying pathophysiology?", or "What is the appropriate treatment?".
+- answerchoice_a: a brief answer option.
+- answerchoice_b: a brief answer option.
+- answerchoice_c: a brief answer option.
+- answerchoice_d: a brief answer option.
+- answerchoice_e: a brief answer option.
+- correct_answer: one of "a", "b", "c", "d", or "e" (lowercase).
+- answer_explanation: a brief explanation for why the correct answer is correct and why the other options are not.
+- age: a decimal number representing the patient's age in years (for example, 0.5 for 6 months).
+- subject: the number {subject_number} (see subject map below).
 
 Subject number map:
 1 = Adolescent Medicine
@@ -58,8 +58,9 @@ Subject number map:
 
 Rules:
 1. Return a valid JSON object containing exactly these keys, with no extra text.
-2. The 'question' must be a detailed, realistic pediatric clinical vignette that is at least 5 sentences long and mentions the clinical setting.
-3. Do not add any additional keys or text.
+2. The 'question' must be a detailed, realistic pediatric clinical vignette that is at least 5 sentences long and clearly states the clinical setting.
+3. The 'anchor' field must be chosen from the following options: "What is the most likely diagnosis?", "What is the next best step in management?", "What is the underlying pathophysiology?", or "What is the appropriate treatment?".
+4. Do not add any additional keys or text.
 
 Return only the JSON object."""
 
