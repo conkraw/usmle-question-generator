@@ -21,11 +21,12 @@ def generate_record_id():
     return uuid.uuid4().hex[:6].upper()
 
 def get_question_prompt(subject_number):
-    return f"""Generate one USMLE-style pediatric question in the following CSV format:
+    return f"""Generate one USMLE-style pediatric clinical question. Return the output as a **single comma-separated row** in the following format:
 
-record_id, question (vignette only), anchor (main clinical question), answerchoice_a, answerchoice_b, answerchoice_c, answerchoice_d, answerchoice_e, correct_answer, answer_explanation (detailed), age (in years), subject (use {subject_number})
+record_id, question (vignette only), anchor (main clinical question), answerchoice_a, answerchoice_b, answerchoice_c, answerchoice_d, answerchoice_e, correct_answer (just A-E), answer_explanation (detailed), age (number only), subject (number from 1 to 22)
 
-Return only the values in a CSV row format, no headers or explanations."""
+Use realistic clinical vignettes. Do not include quotation marks, newlines, or extra commentary. Return only a single CSV row, no header.
+"""
 
 def generate_question(subject_number):
     prompt = get_question_prompt(subject_number)
