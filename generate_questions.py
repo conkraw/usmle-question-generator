@@ -20,7 +20,7 @@ def generate_record_id():
 def get_question_prompt(subject_number):
     return f"""Generate a single USMLE-style pediatric question as a JSON object with the following keys:
 - record_id: a random string (this value will be overwritten by the script)
-- question: a detailed and lengthy clinical vignette describing a realistic pediatric scenario (at least three sentences long)
+- question: a detailed and lengthy clinical vignette describing a realistic pediatric scenario. The vignette should be at least 5 sentences long and mention a clinical setting such as a pediatrician's office, emergency department, ICU, or clinic.
 - anchor: a concise clinical question (for example, What is the most likely diagnosis?)
 - answerchoice_a: a brief answer option
 - answerchoice_b: a brief answer option
@@ -58,10 +58,11 @@ Subject number map:
 
 Rules:
 1. Return a valid JSON object containing exactly these keys, with no extra text.
-2. The clinical vignette (the "question" field) must be lengthy (at least three sentences) and unique.
+2. The 'question' must be a detailed, realistic pediatric clinical vignette that is at least 5 sentences long and mentions the clinical setting.
 3. Do not add any additional keys or text.
 
 Return only the JSON object."""
+
 
 def generate_question(subject_number):
     prompt = get_question_prompt(subject_number)
@@ -69,7 +70,7 @@ def generate_question(subject_number):
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
-        max_tokens=600,
+        max_tokens=6000,
     )
     output = response.choices[0].message['content'].strip()
     try:
