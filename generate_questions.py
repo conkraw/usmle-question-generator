@@ -5,6 +5,8 @@ import random
 import uuid
 import json
 from datetime import date
+import smtplib
+from email.message import EmailMessage
 
 # Set your OpenAI API key from the environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -74,10 +76,8 @@ def generate_question(subject_number, anchor, setting):
     )
     output = response.choices[0].message['content'].strip()
     try:
-        # Attempt to parse output as JSON directly.
         question_json = json.loads(output)
     except json.JSONDecodeError:
-        # If parsing fails, try to extract the JSON portion.
         first_brace = output.find('{')
         last_brace = output.rfind('}')
         if first_brace != -1 and last_brace != -1:
@@ -87,11 +87,30 @@ def generate_question(subject_number, anchor, setting):
             raise ValueError("Failed to parse JSON from GPT output.")
     return question_json
 
+def send_email(filepath):
+    EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
+
+    msg = EmailMessage()
+    msg['Subject'] = f"🩺 Daily USMLE Pediatric Questions - {TODAY}"
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = EMAIL_RECIPIENT
+    msg.set_content("Attached are today's USMLE-style pediatric questions.")
+
+    with open(filepath, "rb") as f:
+        file_data = f.read()
+        msg.add_attachment(file_data, maintype="application", subtype="octet-stream", filename=os.path.basename(filepath))
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        smtp.send_message(msg)
+
 def main():
     os.makedirs("questions", exist_ok=True)
     rows = []
     
-    # Predefined lists for 5 questions.
+    # Predefined lists for 5 questions with unique anchor types and clinical settings.
     anchor_types = [
         "What is the most likely diagnosis?",
         "What is the next best step in management?",
@@ -107,11 +126,10 @@ def main():
         "inpatient ward"
     ]
     
-    # Shuffle if you want random order; or simply use as is.
+    # Shuffle to randomize order
     random.shuffle(anchor_types)
     random.shuffle(settings)
     
-    # Generate exactly 5 questions.
     for i in range(5):
         subject = random.choice(SUBJECTS)
         anchor = anchor_types[i]
@@ -119,9 +137,8 @@ def main():
         question_data = generate_question(subject, anchor, setting)
         # Override record_id with a freshly generated one
         question_data["record_id"] = generate_record_id()
-        # Ensure subject is correct
+        # Ensure subject is set to the chosen number
         question_data["subject"] = subject
-        # Order the keys as required
         ordered_row = [
             question_data.get("record_id", ""),
             question_data.get("question", ""),
@@ -144,6 +161,9 @@ def main():
         "answer_explanation", "age", "subject"
     ])
     df.to_csv(FILENAME, index=False)
+    
+    # Send email with the CSV attached
+    send_email(FILENAME)
 
 if __name__ == "__main__":
     main()
