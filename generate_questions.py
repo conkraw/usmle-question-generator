@@ -14,7 +14,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Define the 22 subject numbers
 SUBJECTS = list(range(1, 23))  # 1 to 22
 TODAY = date.today().isoformat()
-FILENAME = f"questions/questions_{TODAY}.csv"
+FILENAME = "all_questions.csv"  # Updated file name
 
 def generate_record_id():
     return uuid.uuid4().hex[:8].upper()
@@ -30,7 +30,7 @@ def get_question_prompt(subject_number, anchor, setting):
 - answerchoice_d: a brief answer option.
 - answerchoice_e: a brief answer option.
 - correct_answer: one of "a", "b", "c", "d", or "e" (lowercase).
-- answer_explanation: a brief explanation for why the correct answer is correct and why the other options are not.
+- answer_explanation: a detailed explanation that is at least 5 sentences long, explaining why the correct answer is correct and why all the other answer choices are wrong.
 - age: a decimal number representing the patient's age in years (for example, 0.5 for 6 months).
 - subject: the number {subject_number} (see subject map below)
 
@@ -62,9 +62,11 @@ Rules:
 1. Return a valid JSON object containing exactly these keys, with no extra text.
 2. The 'question' must be a detailed, realistic pediatric clinical vignette that is at least 5 sentences long and clearly set in a {setting}.
 3. The 'anchor' field must be exactly: {anchor}
-4. Do not add any additional keys or text.
+4. The 'answer_explanation' must be at least 5 sentences long, explaining why the correct answer is correct and why all the other answer choices are wrong.
+5. Do not add any additional keys or text.
 
 Return only the JSON object."""
+
     
 def generate_question(subject_number, anchor, setting):
     prompt = get_question_prompt(subject_number, anchor, setting)
@@ -107,8 +109,15 @@ def send_email(filepath):
         smtp.send_message(msg)
 
 def main():
-    os.makedirs("questions", exist_ok=True)
-    rows = []
+    # If the file exists, load existing questions; otherwise, start fresh.
+    if os.path.exists(FILENAME):
+        existing_df = pd.read_csv(FILENAME)
+        existing_questions = set(existing_df["question"].str.strip().str.lower().tolist())
+    else:
+        existing_df = None
+        existing_questions = set()
+    
+    new_rows = []
     
     # Predefined lists for anchor types and clinical settings.
     anchor_types = [
@@ -126,15 +135,28 @@ def main():
         "inpatient ward"
     ]
     
-    # Generate one question for each subject (total 22 questions)
-    for subject in SUBJECTS:  # SUBJECTS is defined as list(range(1, 23))
+    # Generate questions for each subject (1 to 22)
+    for subject in SUBJECTS:
+        # Randomly select anchor and setting
         anchor = random.choice(anchor_types)
         setting = random.choice(settings)
-        question_data = generate_question(subject, anchor, setting)
-        # Override record_id with a freshly generated one
+        try:
+            question_data = generate_question(subject, anchor, setting)
+        except Exception as e:
+            print(f"Error generating question for subject {subject}: {e}")
+            continue
+        # Override record_id with a fresh one
         question_data["record_id"] = generate_record_id()
-        # Ensure subject is set to the chosen subject number
         question_data["subject"] = subject
+        
+        # Normalize new question text for duplicate checking
+        new_question_text = question_data.get("question", "").strip().lower()
+        if new_question_text in existing_questions:
+            print(f"Skipping duplicate question for subject {subject}")
+            continue
+        else:
+            existing_questions.add(new_question_text)
+        
         ordered_row = [
             question_data.get("record_id", ""),
             question_data.get("question", ""),
@@ -149,14 +171,21 @@ def main():
             question_data.get("age", ""),
             question_data.get("subject", "")
         ]
-        rows.append(ordered_row)
+        new_rows.append(ordered_row)
     
-    df = pd.DataFrame(rows, columns=[
+    # Convert new questions to DataFrame
+    new_df = pd.DataFrame(new_rows, columns=[
         "record_id", "question", "anchor", "answerchoice_a", "answerchoice_b",
         "answerchoice_c", "answerchoice_d", "answerchoice_e", "correct_answer",
         "answer_explanation", "age", "subject"
     ])
-    df.to_csv(FILENAME, index=False)
+    
+    # Append new questions to the existing CSV (if any)
+    if existing_df is not None:
+        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+        updated_df.to_csv(FILENAME, index=False)
+    else:
+        new_df.to_csv(FILENAME, index=False)
     
     # Send email with the CSV attached
     send_email(FILENAME)
