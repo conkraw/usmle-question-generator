@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_PAT }}  # ✅ THIS LINE IS KEY
+
 
       - name: Set up Python
         uses: actions/setup-python@v4
