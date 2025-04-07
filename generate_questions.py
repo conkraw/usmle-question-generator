@@ -17,11 +17,11 @@ FILENAME = f"questions/questions_{TODAY}.csv"
 def generate_record_id():
     return uuid.uuid4().hex[:8].upper()
 
-def get_question_prompt(subject_number):
+def get_question_prompt(subject_number, anchor, setting):
     return f"""Generate a single USMLE-style pediatric question as a JSON object with the following keys:
 - record_id: a random string (this value will be overwritten by the script)
-- question: a detailed and lengthy clinical vignette describing a realistic pediatric scenario. The vignette should be at least 5 sentences long and mention a clinical setting such as a pediatrician's office, emergency department, ICU, or clinic.
-- anchor: a concise clinical question. Choose one randomly from the following options: "What is the most likely diagnosis?", "What is the next best step in management?", "What is the underlying pathophysiology?", or "What is the appropriate treatment?".
+- question: a detailed and lengthy clinical vignette describing a realistic pediatric scenario set in a {setting}. The vignette must be at least 5 sentences long.
+- anchor: use the following clinical question exactly: {anchor}
 - answerchoice_a: a brief answer option.
 - answerchoice_b: a brief answer option.
 - answerchoice_c: a brief answer option.
@@ -30,7 +30,7 @@ def get_question_prompt(subject_number):
 - correct_answer: one of "a", "b", "c", "d", or "e" (lowercase).
 - answer_explanation: a brief explanation for why the correct answer is correct and why the other options are not.
 - age: a decimal number representing the patient's age in years (for example, 0.5 for 6 months).
-- subject: the number {subject_number} (see subject map below).
+- subject: the number {subject_number} (see subject map below)
 
 Subject number map:
 1 = Adolescent Medicine
@@ -58,27 +58,26 @@ Subject number map:
 
 Rules:
 1. Return a valid JSON object containing exactly these keys, with no extra text.
-2. The 'question' must be a detailed, realistic pediatric clinical vignette that is at least 5 sentences long and clearly states the clinical setting.
-3. The 'anchor' field must be chosen from the following options: "What is the most likely diagnosis?", "What is the next best step in management?", "What is the underlying pathophysiology?", or "What is the appropriate treatment?".
+2. The 'question' must be a detailed, realistic pediatric clinical vignette that is at least 5 sentences long and clearly set in a {setting}.
+3. The 'anchor' field must be exactly: {anchor}
 4. Do not add any additional keys or text.
 
 Return only the JSON object."""
-
-
-def generate_question(subject_number):
-    prompt = get_question_prompt(subject_number)
+    
+def generate_question(subject_number, anchor, setting):
+    prompt = get_question_prompt(subject_number, anchor, setting)
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
-        max_tokens=6000,
+        max_tokens=800,
     )
     output = response.choices[0].message['content'].strip()
     try:
-        # Try to parse the output as JSON directly.
+        # Attempt to parse output as JSON directly.
         question_json = json.loads(output)
     except json.JSONDecodeError:
-        # If JSON parsing fails, try to extract JSON from the text.
+        # If parsing fails, try to extract the JSON portion.
         first_brace = output.find('{')
         last_brace = output.rfind('}')
         if first_brace != -1 and last_brace != -1:
@@ -91,22 +90,36 @@ def generate_question(subject_number):
 def main():
     os.makedirs("questions", exist_ok=True)
     rows = []
-    generated_questions = set()  # to help avoid duplicates
-    attempts = 0
-
-    # Attempt to generate 5 distinct questions (limit attempts to avoid infinite loop)
-    while len(rows) < 5 and attempts < 10:
+    
+    # Predefined lists for 5 questions.
+    anchor_types = [
+        "What is the most likely diagnosis?",
+        "What is the next best step in management?",
+        "What is the underlying pathophysiology?",
+        "What is the appropriate treatment?",
+        "What is the expected prognosis?"
+    ]
+    settings = [
+        "pediatrician's office",
+        "emergency department",
+        "ICU",
+        "clinic",
+        "inpatient ward"
+    ]
+    
+    # Shuffle if you want random order; or simply use as is.
+    random.shuffle(anchor_types)
+    random.shuffle(settings)
+    
+    # Generate exactly 5 questions.
+    for i in range(5):
         subject = random.choice(SUBJECTS)
-        question_data = generate_question(subject)
-        # Check uniqueness using the 'question' text
-        question_text = question_data.get("question", "")
-        if any(question_text in q for q in generated_questions):
-            attempts += 1
-            continue
-        generated_questions.add(question_text)
-        # Override record_id with a new generated one (without quotes issues)
+        anchor = anchor_types[i]
+        setting = settings[i]
+        question_data = generate_question(subject, anchor, setting)
+        # Override record_id with a freshly generated one
         question_data["record_id"] = generate_record_id()
-        # Ensure subject is the correct number (as string or int, but we'll convert to int when writing)
+        # Ensure subject is correct
         question_data["subject"] = subject
         # Order the keys as required
         ordered_row = [
@@ -124,8 +137,7 @@ def main():
             question_data.get("subject", "")
         ]
         rows.append(ordered_row)
-        attempts += 1
-
+    
     df = pd.DataFrame(rows, columns=[
         "record_id", "question", "anchor", "answerchoice_a", "answerchoice_b",
         "answerchoice_c", "answerchoice_d", "answerchoice_e", "correct_answer",
