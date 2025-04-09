@@ -2,7 +2,7 @@ name: Daily Question Generator
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Every day at 00:00 UTC
+    - cron: '0 13 * * *'  # Every day at 13:00 UTC, which is 8:00 AM EST
   workflow_dispatch:     # Optional manual trigger
 
 jobs:
