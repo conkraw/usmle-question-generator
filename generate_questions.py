@@ -107,6 +107,9 @@ def main():
         if question_data is None:
             print("Skipping row due to failed question generation.")
             return
+    except Exception as e:
+        print(f"Failed to generate question: {e}")
+        return
         print(f"Failed to generate question: {e}")
         return
 
@@ -141,4 +144,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
