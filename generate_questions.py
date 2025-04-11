@@ -48,7 +48,7 @@ Question: {original_question}
             model="gpt-4",
             messages=[{"role": "user", "content": metadata_prompt}],
             temperature=0.2,
-            max_tokens=1500,
+            max_tokens=300,
         )
         content = response.choices[0].message['content']
         meta = json.loads(content)
@@ -63,7 +63,56 @@ Question: {original_question}
         return None
 
 def get_prompt(original_question, age, anchor, topic):
-    ...  # same as before
+    return f"""
+Rewrite this question into a new USMLE-style pediatric shelf question. Keep the core concept ({topic}), but:
+- Change the scenario, setting, and clinical details
+- Keep the age close (±2 years)
+- Write a clinical vignette with at least 10 sentences, including:
+  - Relevant history, vitals, physical exam, labs, and subtle clues
+- Generate 5 realistic answer choices (a–e): include one correct and four strong distractors
+- For the explanation:
+  - Clearly explain why the correct answer (e.g., a) is right
+  - Explain why each of the incorrect answers (b–e) is wrong based on clinical reasoning
+- Match the anchor: {anchor}
+
+Return a JSON object with these keys:
+- record_id
+- question
+- anchor
+- answerchoice_a
+- answerchoice_b
+- answerchoice_c
+- answerchoice_d
+- answerchoice_e
+- correct_answer
+- answer_explanation
+- age
+- subject (numeric ID)
+- topic
+- nbme_cat (numeric ID)
+- type (question type code)
+
+Original question: {original_question}
+"""
+def generate_question(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=1000
+    )
+    output = response.choices[0].message['content'].strip()
+    try:
+        question_json = json.loads(output)
+    except json.JSONDecodeError:
+        first_brace = output.find('{')
+        last_brace = output.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            output = output[first_brace:last_brace+1]
+            question_json = json.loads(output)
+        else:
+            raise ValueError("Failed to parse GPT output.")
+    return question_json
 
 def generate_question(prompt):
     try:
@@ -88,7 +137,16 @@ def generate_question(prompt):
 
 
 def send_email(filepath, body_text):
-    ...  # same as before
+    msg = EmailMessage()
+    msg['Subject'] = f"\U0001FA7A Daily USMLE Pediatric Question - {date.today()}"
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = EMAIL_RECIPIENT
+    msg.set_content(body_text)
+    with open(filepath, "rb") as f:
+        msg.add_attachment(f.read(), maintype="application", subtype="octet-stream", filename=os.path.basename(filepath))
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        smtp.send_message(msg)
 
 def main():
     df = pd.read_csv(INPUT_CSV)
