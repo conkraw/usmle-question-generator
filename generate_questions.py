@@ -28,7 +28,39 @@ def extract_info(text):
     return float(age_match.group(1)) if age_match else 14.0
 
 def classify_question_metadata(original_question):
-    ...  # same as before
+    metadata_prompt = f"""
+You are an NBME question classifier. Given the following question text, return the best guesses for:
+
+- topic (free text)
+- subject (number from 1 to 22 based on pediatric subspecialties)
+- nbme_cat (number from 1 to 17 based on USMLE content categories)
+- anchor (question type such as: What is the most likely diagnosis?, What is the next best step in management?, etc.)
+
+Respond only with a valid JSON object with these keys.
+
+Example format:
+{{ "topic": "gynecomastia", "subject": 1, "nbme_cat": 1, "anchor": "What is the most likely diagnosis?" }}
+
+Question: {original_question}
+"""
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": metadata_prompt}],
+            temperature=0.2,
+            max_tokens=300,
+        )
+        content = response.choices[0].message['content']
+        meta = json.loads(content)
+        return (
+            meta.get("topic", "pending"),
+            int(meta.get("subject", 23)),
+            int(meta.get("nbme_cat", 17)),
+            meta.get("anchor", "What is the most likely diagnosis?")
+        )
+    except Exception as e:
+        print(f"Metadata classification failed: {e}")
+        return None
 
 def get_prompt(original_question, age, anchor, topic):
     ...  # same as before
@@ -61,7 +93,11 @@ def main():
     original_id = row["record_id"]
 
     age = extract_info(original_question)
-    topic, subject, nbme_cat, anchor = classify_question_metadata(original_question)
+    result = classify_question_metadata(original_question)
+    if result is None:
+        print("Skipping row due to failed metadata classification.")
+        return
+    topic, subject, nbme_cat, anchor = result
     qtype = 1 if "diagnosis" in anchor.lower() else (4 if "management" in anchor.lower() else 3)
 
     prompt = get_prompt(original_question, age, anchor, topic)
