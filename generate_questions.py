@@ -48,7 +48,7 @@ Question: {original_question}
             model="gpt-4",
             messages=[{"role": "user", "content": metadata_prompt}],
             temperature=0.2,
-            max_tokens=300,
+            max_tokens=1500,
         )
         content = response.choices[0].message['content']
         meta = json.loads(content)
