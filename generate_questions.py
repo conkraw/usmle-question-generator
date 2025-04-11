@@ -66,7 +66,26 @@ def get_prompt(original_question, age, anchor, topic):
     ...  # same as before
 
 def generate_question(prompt):
-    ...  # same as before
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=1500
+        )
+        output = response.choices[0].message['content'].strip()
+
+        # Extract only the JSON part
+        first_brace = output.find('{')
+        last_brace = output.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            output = output[first_brace:last_brace+1]
+
+        return json.loads(output)
+    except Exception as e:
+        print(f"Question generation failed: {e}")
+        return None
+
 
 def send_email(filepath, body_text):
     ...  # same as before
