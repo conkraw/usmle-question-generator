@@ -28,3 +28,9 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
         run: python generate_questions_from_seed.py
+
+      - name: Upload processed.csv
+        uses: actions/upload-artifact@v3
+        with:
+          name: processed-tracking
+          path: processed.csv
