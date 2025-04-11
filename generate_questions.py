@@ -5,6 +5,7 @@ import random
 import json
 from datetime import date
 import re
+import hashlib
 import smtplib
 from email.message import EmailMessage
 
@@ -15,7 +16,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
 
 # File constants
-INPUT_CSV = "file.csv"
+INPUT_CSV = "STUDENTASSESSMENTCRE-MXREPORTBATCHWORK_DATA_2025-04-11_1422.csv"
 OUTPUT_CSV = "all_questions.csv"
 PROCESSED_CSV = "processed.csv"
 
@@ -107,6 +108,7 @@ Return a JSON object with these keys:
 
 Original question: {original_question}
 """
+
 def generate_question(prompt):
     response = openai.ChatCompletion.create(
         model="gpt-4",
@@ -144,10 +146,15 @@ def main():
     if os.path.exists(PROCESSED_CSV):
         processed = pd.read_csv(PROCESSED_CSV)
         processed_ids = set(processed["record_id"])
+        processed_hashes = set(processed["question_hash"]) if "question_hash" in processed.columns else set()
+    else:
+        processed_ids = set()
+        processed_hashes = set()
     else:
         processed_ids = set()
 
-    unprocessed_df = df[~df["record_id"].isin(processed_ids)]
+    df["question_hash"] = df["question"].apply(lambda q: hashlib.sha256(q.encode()).hexdigest())
+unprocessed_df = df[(~df["record_id"].isin(processed_ids)) & (~df["question_hash"].isin(processed_hashes))]
     if unprocessed_df.empty:
         send_email(OUTPUT_CSV, "✅ All questions have been processed.")
         return
@@ -188,10 +195,11 @@ def main():
     else:
         output_df.to_csv(OUTPUT_CSV, index=False)
 
-    pd.DataFrame([{"record_id": original_id}]).to_csv(PROCESSED_CSV, mode='a', header=not os.path.exists(PROCESSED_CSV), index=False)
+    pd.DataFrame([{ "record_id": original_id, "question_hash": hashlib.sha256(original_question.encode()).hexdigest() }]).to_csv(PROCESSED_CSV, mode='a', header=not os.path.exists(PROCESSED_CSV), index=False), index=False)
 
     summary = f"Today's NBME-style Pediatric Question:\n\nAnchor: {anchor}\nTopic: {topic}\n\n{question_data['question']}\n\nAnswer Explanation:\n{question_data['answer_explanation']}"
     send_email(OUTPUT_CSV, summary)
 
 if __name__ == "__main__":
     main()
+
