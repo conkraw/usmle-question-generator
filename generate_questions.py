@@ -77,20 +77,26 @@ Question: {original_question}
 
 def get_prompt(original_question, age, anchor, topic):
     return f"""
-Rewrite this question into a new USMLE-style pediatric question. Keep the core concept ({topic}), but:
+Rewrite this question into a new USMLE-style pediatric shelf question. Keep the core concept ({topic}), but:
 - Change the scenario, setting, and clinical details
-- Keep the age close (e.g., ±2 years)
-- Include at least 5 sentences in the vignette
-- Generate 5 realistic answer choices
-- Include a correct answer and 4 strong distractors
-- Write a robust answer explanation (5+ sentences)
+- Keep the age close (±2 years)
+- Write a clinical vignette with at least 10 sentences, including:
+  - Relevant history, vitals, physical exam, labs, and subtle clues
+- Generate 5 realistic answer choices (a–e): include one correct and four strong distractors
+- For the explanation:
+  - Clearly explain why the correct answer (e.g., a) is right
+  - Explain why each of the incorrect answers (b–e) is wrong based on clinical reasoning
 - Match the anchor: {anchor}
 
-Return a JSON with these keys:
+Return a JSON object with these keys:
 - record_id
 - question
 - anchor
-- answerchoice_a to answerchoice_e
+- answerchoice_a
+- answerchoice_b
+- answerchoice_c
+- answerchoice_d
+- answerchoice_e
 - correct_answer
 - answer_explanation
 - age
@@ -101,7 +107,6 @@ Return a JSON with these keys:
 
 Original question: {original_question}
 """
-
 def generate_question(prompt):
     response = openai.ChatCompletion.create(
         model="gpt-4",
