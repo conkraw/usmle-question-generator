@@ -16,7 +16,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
 
 # File constants
-INPUT_CSV = "file.csv"
+INPUT_CSV = "STUDENTASSESSMENTCRE-MXREPORTBATCHWORK_DATA_2025-04-11_1422.csv"
 OUTPUT_CSV = "all_questions.csv"
 PROCESSED_CSV = "processed.csv"
 
@@ -104,7 +104,9 @@ def main():
 
     try:
         question_data = generate_question(prompt)
-    except Exception as e:
+        if question_data is None:
+            print("Skipping row due to failed question generation.")
+            return
         print(f"Failed to generate question: {e}")
         return
 
@@ -139,3 +141,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
