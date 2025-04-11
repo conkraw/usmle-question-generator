@@ -21,7 +21,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install openai pandas
+        run: pip install openai==0.28 pandas
 
       - name: Run script to generate one NBME-style question
         env:
