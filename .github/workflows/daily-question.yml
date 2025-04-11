@@ -29,7 +29,7 @@ jobs:
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
-        run: python generate_questions_from_seed.py
+        run: python generate_questions.py
 
       - name: Commit processed.csv back to repo
         run: |
