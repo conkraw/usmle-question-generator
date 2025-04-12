@@ -94,25 +94,7 @@ Return a JSON object with these keys:
 
 Original question: {original_question}
 """
-def generate_question(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-        max_tokens=1000
-    )
-    output = response.choices[0].message['content'].strip()
-    try:
-        question_json = json.loads(output)
-    except json.JSONDecodeError:
-        first_brace = output.find('{')
-        last_brace = output.rfind('}')
-        if first_brace != -1 and last_brace != -1:
-            output = output[first_brace:last_brace+1]
-            question_json = json.loads(output)
-        else:
-            raise ValueError("Failed to parse GPT output.")
-    return question_json
+
 
 def generate_question(prompt):
     try:
@@ -124,13 +106,22 @@ def generate_question(prompt):
         )
         output = response.choices[0].message['content'].strip()
 
-        # Extract only the JSON part
+        # Extract JSON safely
         first_brace = output.find('{')
         last_brace = output.rfind('}')
         if first_brace != -1 and last_brace != -1:
             output = output[first_brace:last_brace+1]
 
-        return json.loads(output)
+        data = json.loads(output)
+
+        # Normalize correct_answer to a single lowercase letter
+        correct = str(data.get("correct_answer", "")).strip().lower()
+        if correct not in ["a", "b", "c", "d", "e"]:
+            raise ValueError(f"Invalid correct_answer format: {correct}")
+        data["correct_answer"] = correct
+
+        return data
+
     except Exception as e:
         print(f"Question generation failed: {e}")
         return None
