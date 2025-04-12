@@ -84,7 +84,8 @@ You are a board-certified pediatrician writing a USMLE-style NBME shelf question
 - Then explain why each incorrect answer (b–e) is not the best choice
 - Use step-by-step clinical reasoning and avoid vague or generic statements
 
-Match this exact anchor for the question: {anchor}
+Use this exact anchor for the 'anchor' field: {anchor}.
+**Do not include the anchor question at the end of the vignette.** The clinical vignette should end with a natural clinical description.
 
 Return ONLY a valid JSON object with these keys:
 - record_id
@@ -193,6 +194,10 @@ def main():
         return
 
     question_data["record_id"] = original_id
+    # Remove anchor from the end of the vignette, if present
+    anchor_pattern = re.escape(anchor).replace("\\?", r"\?")
+    question_data["question"] = re.sub(rf'\s*{anchor_pattern}\s*$', '', question_data["question"]).strip()
+
     question_data["subject"] = subject
     question_data["topic"] = topic
     question_data["nbme_cat"] = nbme_cat
