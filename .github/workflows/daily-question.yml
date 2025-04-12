@@ -23,13 +23,21 @@ jobs:
       - name: Install dependencies
         run: pip install openai==0.28 pandas
 
-      - name: Run script to generate one NBME-style question
+      - name: Generate up to 5 questions (every 45 minutes)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
-        run: python generate_questions.py
+        run: |
+          for i in {1..5}; do
+            echo "🔁 Generating question $i..."
+            python generate_questions.py || echo "❌ Question $i failed"
+            if [ "$i" -lt 5 ]; then
+              echo "⏱ Sleeping 45 minutes..."
+              sleep 2700
+            fi
+          done
 
       - name: Commit processed.csv back to repo
         run: |
