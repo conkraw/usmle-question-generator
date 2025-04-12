@@ -64,18 +64,29 @@ Question: {original_question}
 
 def get_prompt(original_question, age, anchor, topic):
     return f"""
-Rewrite this question into a new USMLE-style pediatric shelf question. Keep the core concept ({topic}), but:
-- Change the scenario, setting, and clinical details
-- Keep the age close (±2 years)
-- Write a clinical vignette with at least 10 sentences, including:
-  - Relevant history, vitals, physical exam, labs, and subtle clues
-- Generate 5 realistic answer choices (a–e): include one correct and four strong distractors
-- For the explanation:
-  - Clearly explain why the correct answer (e.g., a) is right
-  - Explain why each of the incorrect answers (b–e) is wrong based on clinical reasoning
-- Match the anchor: {anchor}
+You are a board-certified pediatrician writing a USMLE-style NBME shelf question. Use the following specifications:
 
-Return a JSON object with these keys:
+- Keep the clinical concept focused on: {topic}
+- Change the scenario, setting, and patient context (but preserve the core diagnosis or management decision)
+- Keep the age close to {age} years (±2 years)
+- Write a detailed clinical vignette (at least 10 sentences) including:
+  - Relevant history, review of systems, medications, past medical history
+  - Vitals, physical exam findings, and labs (if applicable)
+  - Subtle or high-yield clues that help distinguish between close diagnoses
+
+**Answer choices:**
+- Create 5 realistic answer choices labeled a–e
+- Use a mix of diagnostic terms, management steps, or treatments as appropriate to the anchor
+- Include one correct answer and four strong distractors that are plausible but incorrect
+
+**Answer explanation:**
+- Start by clearly explaining why the correct answer is correct
+- Then explain why each incorrect answer (b–e) is not the best choice
+- Use step-by-step clinical reasoning and avoid vague or generic statements
+
+Match this exact anchor for the question: {anchor}
+
+Return ONLY a valid JSON object with these keys:
 - record_id
 - question
 - anchor
@@ -84,9 +95,9 @@ Return a JSON object with these keys:
 - answerchoice_c
 - answerchoice_d
 - answerchoice_e
-- correct_answer
-- answer_explanation
-- age
+- correct_answer (must be one of "a", "b", "c", "d", or "e", lowercase)
+- answer_explanation (robust, clear, 5+ sentences)
+- age (in decimal years)
 - subject (numeric ID)
 - topic
 - nbme_cat (numeric ID)
@@ -102,7 +113,7 @@ def generate_question(prompt):
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=1500
+            max_tokens=2000
         )
         output = response.choices[0].message['content'].strip()
 
