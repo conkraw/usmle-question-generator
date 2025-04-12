@@ -218,9 +218,31 @@ def main():
     }])
     processed_entry.to_csv(PROCESSED_CSV, mode='a', header=not os.path.exists(PROCESSED_CSV), index=False)
     
-    summary = f"Today's NBME-style Pediatric Question | Record ID: {question_data['record_id']} | Anchor: {anchor} | Topic: {topic} | Question: {question_data['question']} | A: {question_data['answerchoice_a']} | B: {question_data['answerchoice_b']} | C: {question_data['answerchoice_c']} | D: {question_data['answerchoice_d']} | E: {question_data['answerchoice_e']} | Correct Answer: {question_data['correct_answer'].upper()} | Explanation: {question_data['answer_explanation']}"
+    #summary = f"Today's NBME-style Pediatric Question | Record ID: {question_data['record_id']} | Anchor: {anchor} | Topic: {topic} | Question: {question_data['question']} | A: {question_data['answerchoice_a']} | B: {question_data['answerchoice_b']} | C: {question_data['answerchoice_c']} | D: {question_data['answerchoice_d']} | E: {question_data['answerchoice_e']} | Correct Answer: {question_data['correct_answer'].upper()} | Explanation: {question_data['answer_explanation']}"
 
+    summary = f"""
+Today's NBME-style Pediatric Question
 
+Record ID: {question_data['record_id']}
+Original Question: {original_question}
+Anchor: {anchor}
+Topic: {topic}
+
+Vignette:
+{question_data['question']}
+
+Answer Choices:
+A. {question_data['answerchoice_a']}
+B. {question_data['answerchoice_b']}
+C. {question_data['answerchoice_c']}
+D. {question_data['answerchoice_d']}
+E. {question_data['answerchoice_e']}
+
+Correct Answer: {question_data['correct_answer'].upper()}
+
+Explanation:
+{question_data['answer_explanation']}
+"""
     send_email(OUTPUT_CSV, summary)
 
 if __name__ == "__main__":
