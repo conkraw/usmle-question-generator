@@ -161,7 +161,7 @@ def main():
         processed_ids = set()
         processed_hashes = set()
 
-    df["question_hash"] = df["question"].apply(lambda q: hashlib.sha256(q.encode()).hexdigest())
+    df["question_hash"] = df["question"].apply(lambda q: hashlib.sha256(str(q).encode()).hexdigest())
     unprocessed_df = df[(~df["record_id"].isin(processed_ids)) & (~df["question_hash"].isin(processed_hashes))]
 
     if unprocessed_df.empty:
