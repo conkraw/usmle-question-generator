@@ -62,7 +62,7 @@ Question: {original_question}
         print(f"Metadata classification failed: {e}")
         return None
 
-def get_prompt(original_question, age, anchor, topic):
+def get_prompt(original_question, age, anchor, topic, answer_style):
     return f"""
 You are a board-certified pediatrician writing a USMLE-style NBME shelf question. Use the following specifications:
 
@@ -76,7 +76,7 @@ You are a board-certified pediatrician writing a USMLE-style NBME shelf question
 
 **Answer choices:**
 - Create 5 realistic answer choices labeled a–e
-- Use a mix of diagnostic terms, management steps, or treatments as appropriate to the anchor
+- {answer_style}
 - Include one correct answer and four strong distractors that are plausible but incorrect
 
 **Answer explanation:**
@@ -180,7 +180,15 @@ def main():
     topic, subject, nbme_cat, anchor = result
     qtype = 1 if "diagnosis" in anchor.lower() else (4 if "management" in anchor.lower() else 3)
 
-    prompt = get_prompt(original_question, age, anchor, topic)
+    answer_style = random.choice([
+    "Reword the original answer choices using more challenging or technical terms.",
+    "Frame the answer choices around pathophysiologic mechanisms or underlying causes.",
+    "Replace the original answers with more clinically subtle or easily confusable options.",
+    "Include classic and atypical presentations of related conditions as answer choices.",
+    "Make the answer choices more abstract, requiring reasoning over memorization."
+])
+
+    prompt = get_prompt(original_question, age, anchor, topic, answer_style)
 
     try:
         question_data = generate_question(prompt)
