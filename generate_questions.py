@@ -8,6 +8,7 @@ import re
 import hashlib
 import smtplib
 from email.message import EmailMessage
+import time
 
 # Set your OpenAI key and email credentials using GitHub secrets or env vars
 openai.api_key = os.getenv("OPENAI_API_KEY")
