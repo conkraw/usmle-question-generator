@@ -108,35 +108,43 @@ Original question: {original_question}
 """
 
 
-def generate_question(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=2000
-        )
-        output = response.choices[0].message['content'].strip()
+import time
 
-        # Extract JSON safely
-        first_brace = output.find('{')
-        last_brace = output.rfind('}')
-        if first_brace != -1 and last_brace != -1:
-            output = output[first_brace:last_brace+1]
+def generate_question(prompt, retries=3, delay=15):
+    for attempt in range(retries):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=2000
+            )
+            output = response.choices[0].message['content'].strip()
 
-        data = json.loads(output)
+            # Extract JSON safely
+            first_brace = output.find('{')
+            last_brace = output.rfind('}')
+            if first_brace != -1 and last_brace != -1:
+                output = output[first_brace:last_brace+1]
 
-        # Normalize correct_answer to a single lowercase letter
-        correct = str(data.get("correct_answer", "")).strip().lower()
-        if correct not in ["a", "b", "c", "d", "e"]:
-            raise ValueError(f"Invalid correct_answer format: {correct}")
-        data["correct_answer"] = correct
+            data = json.loads(output)
 
-        return data
+            # Normalize correct_answer to a single lowercase letter
+            correct = str(data.get("correct_answer", "")).strip().lower()
+            if correct not in ["a", "b", "c", "d", "e"]:
+                raise ValueError(f"Invalid correct_answer format: {correct}")
+            data["correct_answer"] = correct
 
-    except Exception as e:
-        print(f"Question generation failed: {e}")
-        return None
+            return data
+
+        except Exception as e:
+            print(f"❌ Question generation failed (attempt {attempt + 1}/{retries}): {e}")
+            if attempt < retries - 1:
+                print(f"⏳ Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                print("🚫 All retries exhausted. Skipping.")
+                return None
 
 
 def send_email(filepath, body_text):
