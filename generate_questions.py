@@ -168,55 +168,68 @@ def main():
         send_email(OUTPUT_CSV, "✅ All questions have been processed.")
         return
 
-    row = unprocessed_df.iloc[0]
-    original_question = row["question"]
-    original_id = row["record_id"]
+    generated_questions = []
+    processed_entries = []
+    max_questions = min(30, len(unprocessed_df))
 
-    age = extract_info(original_question)
-    result = classify_question_metadata(original_question)
-    if result is None:
-        print("Skipping row due to failed metadata classification.")
+    for i in range(max_questions):
+        row = unprocessed_df.iloc[i]
+        original_question = row["question"]
+        original_id = row["record_id"]
+
+        age = extract_info(original_question)
+        result = classify_question_metadata(original_question)
+        if result is None:
+            print(f"Skipping row {original_id} due to failed metadata classification.")
+            continue
+        topic, subject, nbme_cat, anchor = result
+        qtype = 1 if "diagnosis" in anchor.lower() else (4 if "management" in anchor.lower() else 3)
+
+        answer_style = random.choice([
+            "Reword the original answer choices using more challenging or technical terms.",
+            "Frame the answer choices around pathophysiologic mechanisms or underlying causes.",
+            "Replace the original answers with more clinically subtle or easily confusable options.",
+            "Include classic and atypical presentations of related conditions as answer choices.",
+            "Make the answer choices more abstract, requiring reasoning over memorization."
+        ])
+
+        prompt = get_prompt(original_question, age, anchor, topic, answer_style)
+
+        try:
+            question_data = generate_question(prompt)
+            if question_data is None:
+                print(f"Skipping row {original_id} due to failed question generation.")
+                continue
+        except Exception as e:
+            print(f"Error on row {original_id}: {e}")
+            continue
+
+        question_data["record_id"] = original_id
+        # Remove anchor from end of vignette if present
+        anchor_pattern = re.escape(anchor).replace("\\?", r"\?")
+        question_data["question"] = re.sub(rf'\s*{anchor_pattern}\s*$', '', question_data["question"]).strip()
+        question_data["subject"] = subject
+        question_data["topic"] = topic
+        question_data["nbme_cat"] = nbme_cat
+        question_data["type"] = qtype
+
+        generated_questions.append(question_data)
+        processed_entries.append({
+            "record_id": original_id,
+            "question_hash": hashlib.sha256(original_question.encode()).hexdigest()
+        })
+
+    if not generated_questions:
+        send_email(OUTPUT_CSV, "⚠️ No new questions could be generated.")
         return
-    topic, subject, nbme_cat, anchor = result
-    qtype = 1 if "diagnosis" in anchor.lower() else (4 if "management" in anchor.lower() else 3)
 
-    answer_style = random.choice([
-    "Reword the original answer choices using more challenging or technical terms.",
-    "Frame the answer choices around pathophysiologic mechanisms or underlying causes.",
-    "Replace the original answers with more clinically subtle or easily confusable options.",
-    "Include classic and atypical presentations of related conditions as answer choices.",
-    "Make the answer choices more abstract, requiring reasoning over memorization."
-])
-
-    prompt = get_prompt(original_question, age, anchor, topic, answer_style)
-
-    try:
-        question_data = generate_question(prompt)
-        if question_data is None:
-            print("Skipping row due to failed question generation.")
-            return
-    except Exception as e:
-        print(f"Failed to generate question: {e}")
-        return
-        print(f"Failed to generate question: {e}")
-        return
-
-    question_data["record_id"] = original_id
-    # Remove anchor from the end of the vignette, if present
-    anchor_pattern = re.escape(anchor).replace("\\?", r"\?")
-    question_data["question"] = re.sub(rf'\s*{anchor_pattern}\s*$', '', question_data["question"]).strip()
-
-    question_data["subject"] = subject
-    question_data["topic"] = topic
-    question_data["nbme_cat"] = nbme_cat
-    question_data["type"] = qtype
-
+    # Save to all_questions.csv
     cols = [
         "record_id", "question", "anchor",
         "answerchoice_a", "answerchoice_b", "answerchoice_c", "answerchoice_d", "answerchoice_e",
         "correct_answer", "answer_explanation", "age", "subject", "topic", "nbme_cat", "type"
     ]
-    output_df = pd.DataFrame([question_data], columns=cols)
+    output_df = pd.DataFrame(generated_questions, columns=cols)
 
     if os.path.exists(OUTPUT_CSV):
         existing = pd.read_csv(OUTPUT_CSV)
@@ -225,37 +238,37 @@ def main():
     else:
         output_df.to_csv(OUTPUT_CSV, index=False)
 
-    processed_entry = pd.DataFrame([{
-        "record_id": original_id,
-        "question_hash": hashlib.sha256(original_question.encode()).hexdigest()
-    }])
-    processed_entry.to_csv(PROCESSED_CSV, mode='a', header=not os.path.exists(PROCESSED_CSV), index=False)
-    
+    # Append to processed.csv
+    pd.DataFrame(processed_entries).to_csv(PROCESSED_CSV, mode='a', header=not os.path.exists(PROCESSED_CSV), index=False)
+
+    # Email only the last generated question
+    last_q = generated_questions[-1]
     summary = f"""
-Today's NBME-style Pediatric Question
+Today's NBME-style Pediatric Question (#{len(generated_questions)} of 30)
 
 Original Question: {original_question}
-Anchor: {anchor}
-Topic: {topic}
+Anchor: {last_q['anchor']}
+Topic: {last_q['topic']}
 
-Record ID: {question_data['record_id']}
+Record ID: {last_q['record_id']}
 
 Vignette:
-{question_data['question']}
+{last_q['question']}
 
 Answer Choices:
-A. {question_data['answerchoice_a']}
-B. {question_data['answerchoice_b']}
-C. {question_data['answerchoice_c']}
-D. {question_data['answerchoice_d']}
-E. {question_data['answerchoice_e']}
+A. {last_q['answerchoice_a']}
+B. {last_q['answerchoice_b']}
+C. {last_q['answerchoice_c']}
+D. {last_q['answerchoice_d']}
+E. {last_q['answerchoice_e']}
 
-Correct Answer: {question_data['correct_answer'].upper()}
+Correct Answer: {last_q['correct_answer'].upper()}
 
 Explanation:
-{question_data['answer_explanation']}
+{last_q['answer_explanation']}
 """
     send_email(OUTPUT_CSV, summary)
+
 
 if __name__ == "__main__":
     main()
